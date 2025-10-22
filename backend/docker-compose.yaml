@@ -1,0 +1,93 @@
+services:
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - "5672:5672"
+    networks:
+      - ai-nutrition-analysis-system
+
+  users-postgres:
+    image: "postgres:latest"
+    container_name: "users-postgres"
+    ports:
+      - "5433:5433"
+    environment:
+      POSTGRES_DB: "users"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "WMW17eHsBMw2IOm"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    networks:
+      - ai-nutrition-analysis-system
+    volumes:
+      - users-data:/var/lib/postgresql/data
+    command: [ "postgres", "-c", "log_statement=all", "-p 5433" ]
+
+  communication-postgres:
+    image: "postgres:latest"
+    container_name: "communication-postgres"
+    ports:
+      - "5434:5434"
+    environment:
+      POSTGRES_DB: "communication"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "WMW17eHsBMw2IOm"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    networks:
+      - ai-nutrition-analysis-system
+    volumes:
+      - communication-data:/var/lib/postgresql/data
+    command: [ "postgres", "-c", "log_statement=all", "-p 5434" ]
+
+  nutrition-history-postgres:
+    image: "postgres:latest"
+    container_name: "nutrition-history-postgres"
+    ports:
+      - "5435:5435"
+    environment:
+      POSTGRES_DB: "nutrition-history-postgres"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "WMW17eHsBMw2IOm"
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    networks:
+      - ai-nutrition-analysis-system
+    volumes:
+      - nutrition-history-data:/var/lib/postgresql/data
+    command: [ "postgres", "-c", "log_statement=all", "-p 5435" ]
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api-gateway:/usr/src/app
+    networks:
+      - ai-nutrition-analysis-system
+    depends_on:
+      - users-service
+    command: npm run start:dev
+
+  users-service:
+    build:
+      context: ./
+      dockerfile: ./services/users-service/Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./services/users-service:/usr/src/app
+      - ./libs:/usr/src/app/libs
+    networks:
+      - ai-nutrition-analysis-system
+    depends_on:
+      - users-postgres
+    command: npm run start:dev
+
+volumes:
+  users-data:
+  nutrition-history-data:
+  communication-data:
+
+networks:
+  ai-nutrition-analysis-system:
+    external: true
